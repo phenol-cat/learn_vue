@@ -250,6 +250,7 @@
                     </div>
                     <div class="stats" v-show="dotCount">
                         共 <b>{{ dotCount.toLocaleString() }}</b> 个点
+                        <span v-if="resortCount"> · 已重排 <b>{{ resortCount }}</b> 次</span>
                     </div>
                 </div>
 
@@ -349,6 +350,9 @@
                 this.groups = [];                 // 按量化后的颜色分组，减少 fillStyle 切换
                 this.bins = [];                   // 每帧捕获点的临时分组
                 this.captured = [];
+                this.orderDirty = true;           // 需要按颜色重新排序并分配环上角度
+                this.resortAccum = 0;             // 距离下次“每秒重排检测”的累计时间
+                this.resortCount = 0;             // 已触发的重排次数
 
                 this.width = 0;
                 this.height = 0;
@@ -503,6 +507,7 @@
                             sizeK: sizeK,
                             r: 1,
                             cap: false,
+                            ringTargetA: 0,
                             gi: gi
                         };
                         dots.push(dot);
@@ -516,6 +521,8 @@
                 this.avgLum = lumCount ? (lumSum / lumCount) * 255 : 128;
                 this.baseDirty = true;
                 this.usedDotSize = -1;
+                this.orderDirty = true;
+                this.resortAccum = 0;
                 this._applyBackground();
                 if (this.cbs.onStats) this.cbs.onStats(dots.length);
             }
@@ -590,6 +597,24 @@
                 return transitions > 0;
             }
 
+            /* ---------- 按颜色排序并分配环上角度 ---------- */
+            _sortAndAssignRing(captured) {
+                // 按 RGB 色环角度从小到大排成彩虹：红→黄→绿→青→蓝→品红→红。
+                // 同一角度内先排饱和的纯色，再排同色相的灰调，亮度做二次渐变，
+                // 避免低饱和/黑白点散落在彩色序列中打断彩虹。
+                captured.sort((A, B) => {
+                    const hueDiff = A.hue - B.hue;
+                    if (hueDiff !== 0) return hueDiff;
+                    if (A.sat !== B.sat) return B.sat - A.sat;
+                    return A.lum - B.lum || A.seq - B.seq;
+                });
+                const n = captured.length;
+                const stepA = TAU / n;
+                for (let i = 0; i < n; i++) {
+                    captured[i].ringTargetA = stepA * (i + 0.5);
+                }
+            }
+
             /* ---------- 逐帧 ---------- */
             _tick(t) {
                 this._raf = requestAnimationFrame((tt) => this._tick(tt));
@@ -621,6 +646,18 @@
 
                 // 2) 更新捕获成员（点是否处于鼠标半径内）
                 const capturedChanged = this._scanCaptured();
+                if (capturedChanged) this.orderDirty = true;
+
+                // 2.5) 每隔 1 秒检测一次环上的点，并再次触发一次排序
+                this.resortAccum += dt;
+                if (this.resortAccum >= 1) {
+                    this.resortAccum -= 1;
+                    if (this.captured.length) {
+                        this.orderDirty = true;
+                        this.resortCount++;
+                        if (this.cbs.onResort) this.cbs.onResort(this.resortCount);
+                    }
+                }
 
                 // 3) 点大小滑块变化时无需重新采样，只需要重绘静态层
                 if (Math.abs(this.opts.dotSize - this.usedDotSize) > 1e-4) {
@@ -636,23 +673,18 @@
                 let moving = captured.length > 0;
 
                 if (captured.length && this.mouseOn) {
-                    // 按 RGB 色环角度从小到大排成彩虹：红→黄→绿→青→蓝→品红→红。
-                    // 同一角度内先排饱和的纯色，再排同色相的灰调，亮度做二次渐变，
-                    // 避免低饱和/黑白点散落在彩色序列中打断彩虹。
-                    captured.sort((A, B) => {
-                        const hueDiff = A.hue - B.hue;
-                        if (hueDiff !== 0) return hueDiff;
-                        if (A.sat !== B.sat) return B.sat - A.sat;
-                        return A.lum - B.lum || A.seq - B.seq;
-                    });
-                    const n = captured.length;
-                    const stepA = TAU / n;
+                    // 排序只在这里发生：捕获集合变化时、以及每秒一次的定时重排时。
+                    // 排序结果与之前“每帧排序”完全一致，所以动效手感不变。
+                    if (this.orderDirty) {
+                        this._sortAndAssignRing(captured);
+                        this.orderDirty = false;
+                    }
                     const ringR = this.opts.ringR;
                     const k = 1 - Math.exp(-dt * 9);
 
-                    for (let i = 0; i < n; i++) {
+                    for (let i = 0; i < captured.length; i++) {
                         const d = captured[i];
-                        const targetA = stepA * (i + 0.5);
+                        const targetA = d.ringTargetA;
                         const tx = mx + ringR * Math.cos(targetA);
                         const ty = my + ringR * Math.sin(targetA);
                         d.px += (tx - d.px) * k;
@@ -936,6 +968,7 @@
                     const fileEl = ref(null);
                     const showPanel = ref(true);
                     const dotCount = ref(0);
+                    const resortCount = ref(0);
                     const stageBg = ref('#0c101b');
                     const demoIndex = ref(0);
 
@@ -953,6 +986,7 @@
                     onMounted(() => {
                         fx = new DotRingEffect(canvasEl.value, opts, {
                             onStats: (n) => { dotCount.value = n; },
+                            onResort: (n) => { resortCount.value = n; },
                             onBg: (color) => { stageBg.value = color; }
                         });
                         fx.setImage(makeDemoCanvas(0));
@@ -994,7 +1028,7 @@
                     }
 
                     return {
-                        canvasEl, fileEl, showPanel, dotCount, stageBg, opts,
+                        canvasEl, fileEl, showPanel, dotCount, resortCount, stageBg, opts,
                         onFileChange, onDrop, cycleDemo
                     };
                 }
