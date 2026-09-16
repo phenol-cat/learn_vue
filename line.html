@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML/CSS 线条修饰实验室</title>
+    <style>
+        /* --- 基础环境设置 --- */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f5f7fa; /* 浅灰背景，干净 */
+            color: #333;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 700px;
+        }
+
+        h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            font-size: 1.2rem;
+            color: #555;
+        }
+
+        .demo-row {
+            margin: 15px 0;
+            font-size: 1.5rem; /* 字大一点看清楚 */
+            line-height: 1.6;
+        }
+
+        code {
+            display: block;
+            background: #eee;
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            color: #c7254e;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-family: monospace;
+        }
+
+        /* =========================================
+           第一部分：基础三剑客 (text-decoration)
+           ========================================= */
+        
+        /* 1. 下划线 */
+        .basic-underline {
+            text-decoration: underline;
+        }
+
+        /* 2. 删除线 (中划线) */
+        .basic-through {
+            text-decoration: line-through;
+            color: #999; /* 通常删除的内容颜色也会淡一点 */
+        }
+
+        /* 3. 上划线 (比较少用，数学公式里偶尔用) */
+        .basic-over {
+            text-decoration: overline;
+        }
+
+        /* =========================================
+           第二部分：进阶样式 (颜色、形状、粗细)
+           注意：这是现代 CSS 属性
+           ========================================= */
+        
+        /* 4. 彩色下划线 */
+        .style-color {
+            text-decoration: underline;
+            /* 关键：可以让线和字的颜色不一样！ */
+            text-decoration-color: #42b883; /* 绿线 */
+            color: black;                   /* 黑字 */
+        }
+
+        /* 5. 波浪线 (Wavy) - 很适合表示“拼写错误”或“强调” */
+        .style-wavy {
+            text-decoration: underline;
+            text-decoration-style: wavy;
+            text-decoration-color: red;
+        }
+
+        /* 6. 虚线 (Dashed) */
+        .style-dashed {
+            text-decoration: underline;
+            text-decoration-style: dashed;
+            text-decoration-color: #3498db;
+        }
+
+        /* 7. 双实线 (Double) */
+        .style-double {
+            text-decoration: underline;
+            text-decoration-style: double;
+            text-decoration-color: purple;
+        }
+
+        /* 8. 调整粗细 (Thickness) */
+        .style-thick {
+            text-decoration: underline;
+            text-decoration-color: #f1c40f;
+            text-decoration-thickness: 5px; /* 线变粗了 */
+        }
+
+        /* =========================================
+           第三部分：调整间距 (最实用的功能)
+           默认的下划线太贴文字了，很难看，用这个解决
+           ========================================= */
+        
+        .style-offset {
+            text-decoration: underline;
+            text-decoration-color: #e74c3c;
+            text-decoration-thickness: 2px;
+            
+            /* 关键属性：让线离字远一点 */
+            text-underline-offset: 8px; 
+        }
+
+        /* =========================================
+           第四部分：特殊技巧 (模拟删除线)
+           如果 text-decoration 满足不了你，可以用伪元素
+           比如：你想在黑字中间画一条红线
+           ========================================= */
+        
+        .custom-strike {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* 这里的 ::after 就像是在文字上面贴了一张透明胶带 */
+        .custom-strike::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%; /* 垂直居中 */
+            width: 100%;
+            height: 2px; /* 线的高度 */
+            background-color: red; /* 线的颜色 */
+            transform: translateY(-50%) rotate(-5deg); /* 甚至可以旋转！做成手写划掉的感觉 */
+        }
+
+        /* =========================================
+           第五部分：边框法 (Border)
+           这是以前为了调节间距常用的老方法，也很稳
+           ========================================= */
+        .border-line {
+            /* 不用 text-decoration */
+            text-decoration: none;
+            
+            /* 用底部边框模拟下划线 */
+            border-bottom: 3px solid #3498db;
+            
+            /* 优势：可以用 padding 精确控制距离 */
+            padding-bottom: 3px; 
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>1. 基础三剑客 (Basic)</h2>
+        
+        <div class="demo-row">
+            <span class="basic-underline">我是下划线 (Underline)</span>
+            <code>text-decoration: underline;</code>
+        </div>
+
+        <div class="demo-row">
+            <span class="basic-through">我是删除线 (Line-through)</span>
+            <code>text-decoration: line-through;</code>
+        </div>
+
+        <div class="demo-row">
+            <span class="basic-over">我是上划线 (Overline)</span>
+            <code>text-decoration: overline;</code>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. 玩转线条样式 (Style & Color)</h2>
+        
+        <div class="demo-row">
+            <span class="style-color">黑字配绿线</span>
+            <code>text-decoration-color: #42b883;</code>
+        </div>
+
+        <div class="demo-row">
+            <span class="style-wavy">波浪线 (Wavy)</span>
+            <code>text-decoration-style: wavy;</code>
+        </div>
+
+        <div class="demo-row">
+            <span class="style-dashed">虚线 (Dashed)</span>
+            <code>text-decoration-style: dashed;</code>
+        </div>
+
+        <div class="demo-row">
+            <span class="style-double">双实线 (Double)</span>
+            <code>text-decoration-style: double;</code>
+        </div>
+
+        <div class="demo-row">
+            <span class="style-thick">加粗线条 (Thick)</span>
+            <code>text-decoration-thickness: 5px;</code>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>3. 强迫症福音：调整间距 (Offset)</h2>
+        <div class="demo-row">
+            <span class="basic-underline">普通下划线太挤了</span> vs 
+            <span class="style-offset">调整间距后很优雅</span>
+            <code>text-underline-offset: 8px;</code>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>4. 高级魔改：手绘风删除线</h2>
+        <div class="demo-row">
+            价格：<span class="custom-strike">¥998</span>
+            <code>使用 ::after 伪元素 + rotate 旋转</code>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>5. 边框法 (Border Method)</h2>
+        <div class="demo-row">
+            <span class="border-line">这是用边框模拟的下划线</span>
+            <code>border-bottom + padding-bottom</code>
+        </div>
+    </div>
+
+</body>
+</html>

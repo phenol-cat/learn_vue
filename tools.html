@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML 原生标签速查手册</title>
+    <style>
+        /* --- 这里的 CSS 只是为了让手册好看一点，不影响 HTML 标签本身的用法 --- */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            line-height: 1.6;
+        }
+
+        h1 { text-align: center; color: #2c3e50; border-bottom: 2px solid #ddd; padding-bottom: 20px; }
+        
+        /* 每一个知识点的卡片 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #42b883; /* Vue绿 */
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-title::before {
+            content: '#';
+            margin-right: 8px;
+            color: #ddd;
+        }
+
+        /* 展示代码的区域 */
+        .code-box {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        .tag { color: #e06c75; } /* 红色显示标签名 */
+        .attr { color: #d19a66; } /* 橙色显示属性 */
+        .val { color: #98c379; } /* 绿色显示值 */
+        .comment { color: #7f848e; font-style: italic; }
+
+        /* 展示效果的区域 */
+        .preview-box {
+            border: 2px dashed #eee;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 10px;
+            background: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>HTML 常用标签用法大全</h1>
+    <p style="text-align: center; color: #666;">也就是你写网页时的“积木块”</p>
+
+    <div class="card">
+        <div class="card-title">1. 文本修饰 (你的划掉效果在这里)</div>
+        <p>这些标签用来改变文字的样子，就像 Word 里的加粗、斜体。</p>
+        
+        <div class="code-box">
+            &lt;<span class="tag">b</span>&gt;加粗文字&lt;/<span class="tag">b</span>&gt; 或 &lt;<span class="tag">strong</span>&gt;强调加粗&lt;/<span class="tag">strong</span>&gt;<br>
+            &lt;<span class="tag">i</span>&gt;斜体文字&lt;/<span class="tag">i</span>&gt; 或 &lt;<span class="tag">em</span>&gt;强调斜体&lt;/<span class="tag">em</span>&gt;<br>
+            &lt;<span class="tag">u</span>&gt;下划线&lt;/<span class="tag">u</span>&gt;<br>
+            &lt;<span class="tag">s</span>&gt;删除线(划掉)&lt;/<span class="tag">s</span>&gt;<br>
+            &lt;<span class="tag">mark</span>&gt;荧光笔高亮&lt;/<span class="tag">mark</span>&gt;
+        </div>
+
+        <div class="preview-box">
+            这是 <b>普通加粗(b)</b> 和 <strong>语义强调加粗(strong)</strong><br>
+            这是 <i>普通斜体(i)</i> 和 <em>语义强调斜体(em)</em><br>
+            这是 <u>下划线(u)</u><br>
+            这是 <s>兽耳娘控(s)</s> （已划掉）<br>
+            这是 <mark>荧光笔高亮(mark)</mark>，原生自带背景色
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">2. 上标与下标 (化学党的福音)</div>
+        <p>专门用来写公式或者引用标注。</p>
+        
+        <div class="code-box">
+            <span class="comment">&lt;!-- sub = subscript (下标) --&gt;</span><br>
+            三硝基猫猫酚: C&lt;<span class="tag">sub</span>&gt;6&lt;/<span class="tag">sub</span>&gt;H&lt;<span class="tag">sub</span>&gt;3&lt;/<span class="tag">sub</span>&gt;N&lt;<span class="tag">sub</span>&gt;3&lt;/<span class="tag">sub</span>&gt;O&lt;<span class="tag">sub</span>&gt;7&lt;/<span class="tag">sub</span>&gt;<br><br>
+            <span class="comment">&lt;!-- sup = superscript (上标) --&gt;</span><br>
+            勾股定理: a&lt;<span class="tag">sup</span>&gt;2&lt;/<span class="tag">sup</span>&gt; + b&lt;<span class="tag">sup</span>&gt;2&lt;/<span class="tag">sup</span>&gt; = c&lt;<span class="tag">sup</span>&gt;2&lt;/<span class="tag">sup</span>&gt;
+        </div>
+
+        <div class="preview-box">
+            <strong>化学式：</strong> C<sub>6</sub>H<sub>3</sub>N<sub>3</sub>O<sub>7</sub><br>
+            <strong>数学式：</strong> a<sup>2</sup> + b<sup>2</sup> = c<sup>2</sup><br>
+            <strong>引用：</strong> 这是一个引用<sup>[1]</sup>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">3. 标题与段落 (文章骨架)</div>
+        <p>网页的结构就是靠这些撑起来的。</p>
+        
+        <div class="code-box">
+            &lt;<span class="tag">h1</span>&gt;我是最大的标题 (网页一般只用一个)&lt;/<span class="tag">h1</span>&gt;<br>
+            &lt;<span class="tag">h2</span>&gt;我是二级标题&lt;/<span class="tag">h2</span>&gt;<br>
+            &lt;<span class="tag">h3</span>&gt;我是三级标题...直到 h6&lt;/<span class="tag">h3</span>&gt;<br>
+            &lt;<span class="tag">p</span>&gt;我是一个段落。段落之间会有天然的间距。&lt;/<span class="tag">p</span>&gt;<br>
+            &lt;<span class="tag">hr /</span>&gt; <span class="comment">&lt;!-- 水平分割线 --&gt;</span><br>
+            &lt;<span class="tag">br /</span>&gt; <span class="comment">&lt;!-- 强制换行 --&gt;</span>
+        </div>
+
+        <div class="preview-box">
+            <h1>h1 标题</h1>
+            <h2>h2 标题</h2>
+            <h3>h3 标题</h3>
+            <hr />
+            <p>这是第一段话。</p>
+            <p>这是第二段话。<br>这句话还没说完，但我用 br 强制换行了。</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">4. 列表 (Lists)</div>
+        <p>用来展示清单、目录或步骤。</p>
+        
+        <div class="code-box">
+            <span class="comment">&lt;!-- ul: Unordered List (无序列表 - 黑点) --&gt;</span><br>
+            &lt;<span class="tag">ul</span>&gt;<br>
+            &nbsp;&nbsp;&lt;<span class="tag">li</span>&gt;猫猫&lt;/<span class="tag">li</span>&gt;<br>
+            &nbsp;&nbsp;&lt;<span class="tag">li</span>&gt;狗狗&lt;/<span class="tag">li</span>&gt;<br>
+            &lt;/<span class="tag">ul</span>&gt;<br><br>
+            
+            <span class="comment">&lt;!-- ol: Ordered List (有序列表 - 数字) --&gt;</span><br>
+            &lt;<span class="tag">ol</span>&gt;<br>
+            &nbsp;&nbsp;&lt;<span class="tag">li</span>&gt;第一步：打开冰箱&lt;/<span class="tag">li</span>&gt;<br>
+            &nbsp;&nbsp;&lt;<span class="tag">li</span>&gt;第二步：把大象放进去&lt;/<span class="tag">li</span>&gt;<br>
+            &lt;/<span class="tag">ol</span>&gt;
+        </div>
+
+        <div class="preview-box">
+            <strong>我的爱好：</strong>
+            <ul>
+                <li>Coding</li>
+                <li>Gaming</li>
+            </ul>
+            
+            <strong>安装步骤：</strong>
+            <ol>
+                <li>npm install</li>
+                <li>npm run dev</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">5. 两个最重要的盒子 (div vs span)</div>
+        <p>这是新手最容易混淆的概念。</p>
+        
+        <div class="code-box">
+            <span class="comment">&lt;!-- div: 块级元素 (Block) --&gt;</span><br>
+            <span class="comment">&lt;!-- 特点：独占一行，不管内容多少，都会强制换行 --&gt;</span><br>
+            &lt;<span class="tag">div</span> style="background:#eee"&gt;我是 div，我霸占了一整行&lt;/<span class="tag">div</span>&gt;<br><br>
+
+            <span class="comment">&lt;!-- span: 行内元素 (Inline) --&gt;</span><br>
+            <span class="comment">&lt;!-- 特点：内容多少就占多少地，可以和其他字挤在一行 --&gt;</span><br>
+            我在一段文字里 &lt;<span class="tag">span</span> style="color:red"&gt;偷偷插入一个 span&lt;/<span class="tag">span</span>&gt; 改变颜色。
+        </div>
+
+        <div class="preview-box">
+            <div style="background:#eee; margin-bottom: 5px;">我是 div 1</div>
+            <div style="background:#eee; margin-bottom: 5px;">我是 div 2 (看到没，我也换行了)</div>
+            
+            <p>
+                这是一段话，<span style="background: yellow;">span 只是一个小包装袋</span>，不会打断文字。
+            </p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">6. 媒体与链接</div>
+        
+        <div class="code-box">
+            <span class="comment">&lt;!-- a: Anchor (链接) --&gt;</span><br>
+            <span class="comment">&lt;!-- target="_blank" 表示在新窗口打开 --&gt;</span><br>
+            &lt;<span class="tag">a</span> <span class="attr">href</span>=<span class="val">"https://bilibili.com"</span> <span class="attr">target</span>=<span class="val">"_blank"</span>&gt;去 B 站&lt;/<span class="tag">a</span>&gt;<br><br>
+
+            <span class="comment">&lt;!-- img: Image (图片) - 自闭合标签 --&gt;</span><br>
+            &lt;<span class="tag">img</span> <span class="attr">src</span>=<span class="val">"avatar.png"</span> <span class="attr">alt</span>=<span class="val">"头像"</span> <span class="attr">width</span>=<span class="val">"50"</span> /&gt;
+        </div>
+
+        <div class="preview-box">
+            <a href="#" style="color: #42b883; text-decoration: underline;">这是一个演示链接</a>
+        </div>
+    </div>
+
+</body>
+</html>

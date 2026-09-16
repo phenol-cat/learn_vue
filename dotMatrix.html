@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>点阵磁环 · Vue Dot Matrix Ring</title>
+    <style>
+        :root {
+            --panel-bg: rgba(17, 21, 32, 0.78);
+            --border: rgba(255, 255, 255, 0.12);
+            --text: #e9edf7;
+            --muted: #98a2b8;
+            --accent: #62d6ff;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body, #app {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            overflow: hidden;
+            background: #0a0d15;
+            color: var(--text);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        [v-cloak] { display: none; }
+
+        .page {
+            position: fixed;
+            inset: 0;
+            user-select: none;
+        }
+
+        canvas.efx {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+            transition: background-color 0.35s ease;
+        }
+
+        .toggle {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 20;
+            border: 1px solid var(--border);
+            background: var(--panel-bg);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 7px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .toggle:hover { border-color: rgba(98, 214, 255, 0.55); }
+
+        .panel {
+            position: fixed;
+            left: 50%;
+            bottom: 12px;
+            transform: translateX(-50%);
+            z-index: 10;
+            width: min(940px, calc(100vw - 20px));
+            max-height: calc(100vh - 16px);
+            overflow: auto;
+            border-radius: 16px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(18px) saturate(1.25);
+            -webkit-backdrop-filter: blur(18px) saturate(1.25);
+            padding: 12px 16px 14px;
+            color: var(--text);
+        }
+
+        .panel .head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .brand {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .brand small {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--muted);
+            letter-spacing: 0;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        .btn {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            font: inherit;
+            font-size: 13px;
+            border-radius: 9px;
+            padding: 6px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(98, 214, 255, 0.5); }
+        .btn.primary { background: rgba(98, 214, 255, 0.14); border-color: rgba(98, 214, 255, 0.42); }
+
+        .stats {
+            font-size: 12px;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .stats b { color: var(--accent); font-weight: 600; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px 14px;
+            align-items: end;
+        }
+
+        .field label {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 3px;
+            white-space: nowrap;
+        }
+        .field output {
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+        .field input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        .field select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--text);
+            font: inherit;
+            font-size: 13px;
+            padding: 4px 6px;
+        }
+        .check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text) !important;
+            cursor: pointer;
+        }
+
+        @media (max-width: 640px) {
+            .hint { display: none; }
+            .brand small { display: none; }
+        }
+    </style>
+
+    <!-- Vue 3 CDN，带备用源，避免单个 CDN 不可用 -->
+    <script>
+        (function () {
+            var urls = [
+                'https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js',
+                'https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js'
+            ];
+            var queue = [];
+            window.__vueReady = function (fn) {
+                queue.push(fn);
+                if (window.Vue) flush();
+            };
+            function flush() {
+                var list = queue.splice(0);
+                list.forEach(function (fn) { fn(); });
+            }
+            function load(index) {
+                if (window.Vue) { flush(); return; }
+                if (index >= urls.length) {
+                    document.documentElement.innerHTML = '<div style="font-family:sans-serif;padding:40px">无法加载 Vue，请检查网络后刷新页面。</div>';
+                    return;
+                }
+                var s = document.createElement('script');
+                s.src = urls[index];
+                s.onload = function () {
+                    if (window.Vue) flush(); else load(index + 1);
+                };
+                s.onerror = function () { load(index + 1); };
+                document.head.appendChild(s);
+            }
+            load(0);
+        })();
+    </script>
+</head>
+
+<body>
+    <div id="app" v-cloak>
+        <div class="page"
+             @dragover.prevent
+             @drop.prevent="onDrop">
+
+            <canvas ref="canvasEl" class="efx" :style="{ backgroundColor: stageBg }"></canvas>
+
+            <button class="toggle" @click="showPanel = !showPanel">
+                {{ showPanel ? '收起控制' : '显示控制' }}
+            </button>
+
+            <aside class="panel" v-if="showPanel">
+                <div class="head">
+                    <div class="brand">
+                        ◎ 点阵磁环
+                        <small>DOT MATRIX · MOUSE RING · VUE</small>
+                    </div>
+                    <div class="stats" v-show="dotCount">
+                        共 <b>{{ dotCount.toLocaleString() }}</b> 个点
+                    </div>
+                </div>
+
+                <div class="head">
+                    <div class="actions">
+                        <label class="btn primary">
+                            上传图片
+                            <input ref="fileEl" type="file" accept="image/*" hidden @change="onFileChange">
+                        </label>
+                        <button class="btn" @click="cycleDemo">换一个示例</button>
+                    </div>
+                    <div class="hint">
+                        移动鼠标：捕获半径内的点会被吸到鼠标周围的圆上，<br>
+                        并且始终均匀分布；也可以直接把图片拖进页面。
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="field">
+                        <label>点阵密度 <output>{{ opts.cols }}</output></label>
+                        <input type="range" min="50" max="240" step="1" v-model.number="opts.cols">
+                    </div>
+                    <div class="field">
+                        <label>点的大小 <output>{{ opts.dotSize.toFixed(2) }}</output></label>
+                        <input type="range" min="0.35" max="1.1" step="0.01" v-model.number="opts.dotSize">
+                    </div>
+                    <div class="field">
+                        <label>捕获半径 <output>{{ opts.captureR }}px</output></label>
+                        <input type="range" min="60" max="380" step="5" v-model.number="opts.captureR">
+                    </div>
+                    <div class="field">
+                        <label>环绕半径 <output>{{ opts.ringR }}px</output></label>
+                        <input type="range" min="30" max="280" step="5" v-model.number="opts.ringR">
+                    </div>
+                    <div class="field">
+                        <label>背景
+                            <select v-model="opts.bg">
+                                <option value="auto">自动</option>
+                                <option value="dark">深色</option>
+                                <option value="light">浅色</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label class="check">
+                            <input type="checkbox" v-model="opts.guides"> 显示辅助圈
+                        </label>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+
+        /* ============================================================
+         *  DotRingEffect
+         *  - 将图片采样成点阵（每格取平均颜色，尽量还原原图）
+         *  - 鼠标一定半径内的点被“捕获”，均匀铺在鼠标周围的圆环上
+         *  - 渲染循环使用 Canvas，不依赖 Vue 响应式，保证 60fps
+         * ============================================================ */
+
+        var TAU = Math.PI * 2;
+        var MAX_DOTS = 14000;          // 点阵总数上限（性能保护）
+        var LUM_STRENGTH = 0.42;       // 暗点稍微放大、亮点稍微缩小，增强轮廓识别度
+
+        function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+        function quant8(v) { return Math.min(255, Math.round(v / 32) * 32); }
+        // RGB 色环角度：红色 0°、黄色 60°、绿色 120°、青色 180°、
+        // 蓝色 240°、品红 300°。沿这个角度排序就是连续的彩虹顺序，
+        // 而不是把 (r,g,b) 当数字做字典序排列。
+        function rainbowHueOf(r, g, b) {
+            const x = 2 * r - g - b;                    // 红-绿 方向分量
+            const y = Math.sqrt(3) * (g - b);           // 绿-蓝 方向分量
+            let deg = Math.atan2(y, x) * 180 / Math.PI;
+            return deg < 0 ? deg + 360 : deg;
+        }
+        function dist2(ax, ay, bx, by) {
+            var dx = bx - ax, dy = by - ay;
+            return dx * dx + dy * dy;
+        }
+
+        class DotRingEffect {
+            constructor(canvas, opts, cbs) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.opts = opts;                 // Vue reactive 对象，帧循环里直接读取最新值
+                this.cbs = cbs || {};
+
+                // 静态点阵层：所有“未被捕获”的点一次性画到这张离屏画布上
+                this.base = document.createElement('canvas');
+                this.bctx = this.base.getContext('2d');
+
+                this.source = null;               // Image / Canvas 图像源
+                this.dots = [];
+                this.groups = [];                 // 按量化后的颜色分组，减少 fillStyle 切换
+                this.bins = [];                   // 每帧捕获点的临时分组
+                this.captured = [];
+
+                this.width = 0;
+                this.height = 0;
+                this.dpr = 1;
+                this.cell = 1;
+
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.mouseOn = false;
+                this.mouseWasOn = false;
+
+                this.lastSig = '';
+                this.baseDirty = true;
+                this.hasPainted = false;
+                this.usedDotSize = -1;
+                this._lastBgMode = '';
+                this.avgLum = 128;
+                this._raf = 0;
+                this._lastT = 0;
+
+                this._resize();
+
+                this._onPointerMove = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouseX = e.clientX - rect.left;
+                    this.mouseY = e.clientY - rect.top;
+                    this.mouseOn = true;
+                };
+                this._onPointerLeave = () => { this.mouseOn = false; };
+                this._onWinResize = () => this._resize();
+
+                window.addEventListener('pointermove', this._onPointerMove, { passive: true });
+                window.addEventListener('blur', this._onPointerLeave);
+                document.addEventListener('mouseleave', this._onPointerLeave);
+                window.addEventListener('resize', this._onWinResize);
+
+                this._raf = requestAnimationFrame((t) => this._tick(t));
+            }
+
+            dispose() {
+                cancelAnimationFrame(this._raf);
+                window.removeEventListener('pointermove', this._onPointerMove);
+                window.removeEventListener('blur', this._onPointerLeave);
+                document.removeEventListener('mouseleave', this._onPointerLeave);
+                window.removeEventListener('resize', this._onWinResize);
+            }
+
+            /* ---------- 尺寸 / 图像 ---------- */
+            setImage(src) {
+                this.source = src;
+                this.lastSig = '';        // 强制下一帧重新采样点阵
+            }
+
+            _resize() {
+                const w = this.canvas.clientWidth || window.innerWidth;
+                const h = this.canvas.clientHeight || window.innerHeight;
+                if (w < 2 || h < 2) return;
+                if (w === this.width && h === this.height) return;
+
+                this.width = w;
+                this.height = h;
+                this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+                for (const [cv, ctx] of [
+                    [this.canvas, this.ctx],
+                    [this.base, this.bctx]
+                ]) {
+                    cv.width = Math.round(w * this.dpr);
+                    cv.height = Math.round(h * this.dpr);
+                    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+                }
+                this.lastSig = '';        // 触发重建点阵
+                this.baseDirty = true;
+            }
+
+            /* ---------- 点阵采样 ---------- */
+            _buildDots(colsTarget) {
+                const w = this.width, h = this.height;
+                const aspect = w / h;
+                let cols = clamp(Math.round(colsTarget), 40, 260);
+                // 根据屏幕比例限制总点数
+                const colsCap = Math.floor(Math.sqrt(MAX_DOTS * aspect));
+                cols = Math.min(cols, Math.max(40, colsCap));
+                const rows = Math.max(1, Math.round((h * cols) / w));
+                const stepX = w / cols;
+                const stepY = h / rows;
+                this.cell = Math.min(stepX, stepY);
+
+                // 先把图片“contain”缩进一个 cols x rows 的小画布，
+                // 每个像素天然就是对应格子里的平均颜色（浏览器高质量缩放）
+                const sw = this.source.naturalWidth || this.source.width;
+                const sh = this.source.naturalHeight || this.source.height;
+                const tmp = document.createElement('canvas');
+                tmp.width = Math.max(1, cols);
+                tmp.height = Math.max(1, rows);
+                const tctx = tmp.getContext('2d', { willReadFrequently: true });
+                tctx.imageSmoothingEnabled = true;
+                tctx.imageSmoothingQuality = 'high';
+                const scale = Math.min(cols / sw, rows / sh);
+                const dw = sw * scale, dh = sh * scale;
+                tctx.clearRect(0, 0, cols, rows);
+                tctx.drawImage(this.source, (cols - dw) / 2, (rows - dh) / 2, dw, dh);
+
+                const data = tctx.getImageData(0, 0, cols, rows).data;
+                const dots = [];
+                const groupMap = new Map();   // colorKey -> group index
+                const groups = [];
+                let lumSum = 0, lumCount = 0;
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const i = (r * cols + c) * 4;
+                        const a = data[i + 3] / 255;
+                        if (a < 0.09) continue;               // 完全透明处不画点
+
+                        const R = data[i], G = data[i + 1], B = data[i + 2];
+                        const maxC = Math.max(R, G, B);
+                        const minC = Math.min(R, G, B);
+                        const hue = rainbowHueOf(R, G, B);
+                        const sat = maxC === 0 ? 0 : (maxC - minC) / maxC;
+                        const lum = (0.2126 * R + 0.7152 * G + 0.0722 * B) / 255;
+                        lumSum += lum;
+                        lumCount++;
+
+                        // 暗一点的区域点更大，亮一点的区域点更小 → 保留明暗轮廓
+                        const sizeK = clamp(1 - LUM_STRENGTH * (lum - 0.55), 0.68, 1.35);
+
+                        // 保存色相用于“颜色连续排布”；颜色量化后分组，渲染时同组只需一次 fillStyle
+                        const qR = quant8(R), qG = quant8(G), qB = quant8(B);
+                        const qA = a > 0.9 ? 3 : (a > 0.6 ? 2 : (a > 0.28 ? 1 : 0));
+                        const key = (qA << 24) | (qR / 32) << 16 | (qG / 32) << 8 | (qB / 32);
+                        const alpha = qA === 3 ? 1 : qA === 2 ? 0.72 : qA === 1 ? 0.42 : 0.12;
+                        let gi = groupMap.get(key);
+                        if (gi === undefined) {
+                            gi = groups.length;
+                            groups.push({
+                                color: 'rgba(' + qR + ',' + qG + ',' + qB + ',' + alpha + ')',
+                                list: []
+                            });
+                            groupMap.set(key, gi);
+                        }
+
+                        const dot = {
+                            x: (c + 0.5) * stepX,
+                            y: (r + 0.5) * stepY,
+                            px: (c + 0.5) * stepX,
+                            py: (r + 0.5) * stepY,
+                            seq: dots.length,
+                            hue: hue,
+                            sat: sat,
+                            lum: lum,
+                            sizeK: sizeK,
+                            r: 1,
+                            cap: false,
+                            gi: gi
+                        };
+                        dots.push(dot);
+                        groups[gi].list.push(dot);
+                    }
+                }
+
+                this.dots = dots;
+                this.groups = groups;
+                this.bins = this.groups.map(() => []);
+                this.avgLum = lumCount ? (lumSum / lumCount) * 255 : 128;
+                this.baseDirty = true;
+                this.usedDotSize = -1;
+                this._applyBackground();
+                if (this.cbs.onStats) this.cbs.onStats(dots.length);
+            }
+
+            _applyBackground() {
+                const mode = this.opts.bg;
+                let color;
+                if (mode === 'dark') color = '#0c101b';
+                else if (mode === 'light') color = '#f3f0e9';
+                else color = this.avgLum > 148 ? '#0c101b' : '#f3f0e9';
+                if (this.cbs.onBg) this.cbs.onBg(color);
+            }
+
+            /* ---------- 静态层 ---------- */
+            _computeRadii() {
+                const baseR = Math.max(0.8, this.cell * 0.5 * this.opts.dotSize);
+                for (let i = 0; i < this.dots.length; i++) {
+                    const d = this.dots[i];
+                    d.r = Math.max(0.8, baseR * d.sizeK);
+                }
+                this.usedDotSize = this.opts.dotSize;
+            }
+
+            _buildBase() {
+                const ctx = this.bctx;
+                this._computeRadii();
+                ctx.clearRect(0, 0, this.width, this.height);
+
+                const groups = this.groups;
+                for (let gi = 0; gi < groups.length; gi++) {
+                    const g = groups[gi];
+                    const list = g.list;
+                    let has = false;
+                    ctx.beginPath();
+                    for (let j = 0; j < list.length; j++) {
+                        const d = list[j];
+                        if (!d.cap) {
+                            ctx.moveTo(d.x + d.r, d.y);
+                            ctx.arc(d.x, d.y, d.r, 0, TAU);
+                            has = true;
+                        }
+                    }
+                    if (has) {
+                        ctx.fillStyle = g.color;
+                        ctx.fill();
+                    }
+                }
+                this.baseDirty = false;
+            }
+
+            /* ---------- 捕获状态 ---------- */
+            _scanCaptured() {
+                // 用点的原始位置判断是否进入鼠标捕获半径，保证边界行为稳定
+                const capR = this.opts.captureR;
+                const r2 = capR * capR;
+                const on = this.mouseOn;
+                const mx = this.mouseX, my = this.mouseY;
+                const dots = this.dots;
+                const captured = this.captured;
+                captured.length = 0;
+
+                let transitions = 0;
+                for (let i = 0; i < dots.length; i++) {
+                    const d = dots[i];
+                    const inside = on && dist2(d.x, d.y, mx, my) <= r2;
+                    if (d.cap !== inside) {
+                        d.cap = inside;
+                        transitions++;
+                    }
+                    if (inside) captured.push(d);
+                }
+                return transitions > 0;
+            }
+
+            /* ---------- 逐帧 ---------- */
+            _tick(t) {
+                this._raf = requestAnimationFrame((tt) => this._tick(tt));
+                const dt = this._lastT ? Math.min(0.05, (t - this._lastT) / 1000) : 0.016;
+                this._lastT = t;
+                this._step(dt);
+            }
+
+            _step(dt) {
+                if (!this.source || this.width < 2 || this.height < 2) return;
+
+                // 1) 图像 / 窗口 / 密度变化 → 重建点阵
+                const colsTarget = Math.round(this.opts.cols || 130);
+                const sig = [
+                    this.source,
+                    this.width + 'x' + this.height,
+                    colsTarget
+                ].join('|');
+                if (sig !== this.lastSig) {
+                    this.lastSig = sig;
+                    this._buildDots(colsTarget);
+                }
+
+                // 背景模式单独切换时不需要重建点阵，直接刷新底色
+                if (this.opts.bg !== this._lastBgMode) {
+                    this._lastBgMode = this.opts.bg;
+                    this._applyBackground();
+                }
+
+                // 2) 更新捕获成员（点是否处于鼠标半径内）
+                const capturedChanged = this._scanCaptured();
+
+                // 3) 点大小滑块变化时无需重新采样，只需要重绘静态层
+                if (Math.abs(this.opts.dotSize - this.usedDotSize) > 1e-4) {
+                    this.baseDirty = true;
+                }
+
+                if (capturedChanged) this.baseDirty = true;
+                if (this.baseDirty) this._buildBase();
+
+                // 4) 被捕获的点：按颜色连续排序后，均匀排布到鼠标圆环上
+                const captured = this.captured;
+                const mx = this.mouseX, my = this.mouseY;
+                let moving = captured.length > 0;
+
+                if (captured.length && this.mouseOn) {
+                    // 按 RGB 色环角度从小到大排成彩虹：红→黄→绿→青→蓝→品红→红。
+                    // 同一角度内先排饱和的纯色，再排同色相的灰调，亮度做二次渐变，
+                    // 避免低饱和/黑白点散落在彩色序列中打断彩虹。
+                    captured.sort((A, B) => {
+                        const hueDiff = A.hue - B.hue;
+                        if (hueDiff !== 0) return hueDiff;
+                        if (A.sat !== B.sat) return B.sat - A.sat;
+                        return A.lum - B.lum || A.seq - B.seq;
+                    });
+                    const n = captured.length;
+                    const stepA = TAU / n;
+                    const ringR = this.opts.ringR;
+                    const k = 1 - Math.exp(-dt * 9);
+
+                    for (let i = 0; i < n; i++) {
+                        const d = captured[i];
+                        const targetA = stepA * (i + 0.5);
+                        const tx = mx + ringR * Math.cos(targetA);
+                        const ty = my + ringR * Math.sin(targetA);
+                        d.px += (tx - d.px) * k;
+                        d.py += (ty - d.py) * k;
+                    }
+                }
+
+                // 5) 未被捕获的点飞回原位
+                const backK = 1 - Math.exp(-dt * 7);
+                const dots = this.dots;
+                for (let i = 0; i < dots.length; i++) {
+                    const d = dots[i];
+                    if (!d.cap) {
+                        if (Math.abs(d.px - d.x) > 0.02 || Math.abs(d.py - d.y) > 0.02) {
+                            moving = true;
+                            d.px += (d.x - d.px) * backK;
+                            d.py += (d.y - d.py) * backK;
+                        } else {
+                            d.px = d.x;
+                            d.py = d.y;
+                        }
+                    }
+                }
+
+                // 6) 真正绘制
+                const mouseStateChanged = this.mouseOn !== this.mouseWasOn;
+                this.mouseWasOn = this.mouseOn;
+                const needGuides = this.mouseOn && this.opts.guides;
+                if (this.hasPainted && !moving && !capturedChanged &&
+                    !needGuides && !mouseStateChanged && !this.baseDirty) {
+                    return;
+                }
+
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+                ctx.drawImage(this.base, 0, 0, this.width, this.height);
+
+                // 环上的点同样按颜色分组绘制
+                const bins = this.bins;
+                const groups = this.groups;
+                for (let gi = 0; gi < bins.length; gi++) bins[gi].length = 0;
+                for (let i = 0; i < captured.length; i++) {
+                    const d = captured[i];
+                    bins[d.gi].push(d);
+                }
+
+                for (let gi = 0; gi < groups.length; gi++) {
+                    const bin = bins[gi];
+                    if (!bin.length) continue;
+                    const g = groups[gi];
+                    ctx.fillStyle = g.color;
+                    ctx.beginPath();
+                    for (let j = 0; j < bin.length; j++) {
+                        const d = bin[j];
+                        ctx.moveTo(d.px + d.r, d.py);
+                        ctx.arc(d.px, d.py, d.r, 0, TAU);
+                    }
+                    ctx.fill();
+                }
+
+                // 7) 辅助圈
+                if (needGuides) {
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 7]);
+                    ctx.strokeStyle = 'rgba(140, 160, 200, 0.22)';
+                    ctx.beginPath();
+                    ctx.arc(mx, my, this.opts.captureR, 0, TAU);
+                    ctx.stroke();
+
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.42)';
+                    ctx.lineWidth = 1.3;
+                    ctx.beginPath();
+                    ctx.arc(mx, my, this.opts.ringR, 0, TAU);
+                    ctx.stroke();
+                }
+
+                this.hasPainted = true;
+            }
+        }
+
+
+        /* ============================================================
+         *  两个内置示例（纯 Canvas 绘制，不依赖网络图片）
+         * ============================================================ */
+
+        function paintCat(c, W, H) {
+            // 夜空渐变背景
+            const bg = c.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#16233f');
+            bg.addColorStop(0.62, '#274c78');
+            bg.addColorStop(1, '#4d7ea8');
+            c.fillStyle = bg;
+            c.fillRect(0, 0, W, H);
+
+            // 星星
+            c.fillStyle = 'rgba(255,255,255,0.9)';
+            const stars = [[120,90],[230,170],[330,55],[500,130],[180,300],[90,420],[360,330],
+                [1280,110],[1460,70],[1320,300],[1200,410],[1500,470],[1080,250],[980,90]];
+            for (const [x, y] of stars) {
+                c.beginPath();
+                c.arc(x, y, (x + y) % 13 === 0 ? 3.5 : 2, 0, TAU);
+                c.fill();
+            }
+
+            // 月亮
+            c.fillStyle = '#ffe9a8';
+            c.beginPath();
+            c.arc(1330, 160, 82, 0, TAU);
+            c.fill();
+            c.fillStyle = 'rgba(240,214,140,0.85)';
+            for (const [x, y, r] of [[1298, 150, 13], [1358, 125, 10], [1352, 205, 17]]) {
+                c.beginPath();
+                c.arc(x, y, r, 0, TAU);
+                c.fill();
+            }
+
+            // 头部后方的暖色光晕，让白猫更醒目
+            const glow = c.createRadialGradient(760, 470, 40, 760, 470, 430);
+            glow.addColorStop(0, 'rgba(255,168,88,0.42)');
+            glow.addColorStop(1, 'rgba(255,168,88,0)');
+            c.fillStyle = glow;
+            c.fillRect(100, 30, W - 200, H - 60);
+
+            // 两只耳朵（先画，头部圆会盖住底部）
+            c.fillStyle = '#f8efdc';
+            c.beginPath();
+            c.moveTo(498, 220); c.lineTo(590, 30); c.lineTo(715, 345);
+            c.closePath(); c.fill();
+            c.beginPath();
+            c.moveTo(1022, 220); c.lineTo(930, 30); c.lineTo(805, 345);
+            c.closePath(); c.fill();
+            // 耳内粉色
+            c.fillStyle = '#f5a9b8';
+            c.beginPath();
+            c.moveTo(552, 205); c.lineTo(612, 112); c.lineTo(676, 278);
+            c.closePath(); c.fill();
+            c.beginPath();
+            c.moveTo(968, 205); c.lineTo(908, 112); c.lineTo(844, 278);
+            c.closePath(); c.fill();
+
+            // 脸
+            const face = c.createRadialGradient(760, 500, 60, 760, 470, 260);
+            face.addColorStop(0, '#fffdf5');
+            face.addColorStop(1, '#f4ead2');
+            c.fillStyle = face;
+            c.beginPath();
+            c.arc(760, 480, 255, 0, TAU);
+            c.fill();
+
+            // 眼睛（大而深，便于点阵辨认）
+            c.fillStyle = '#202b3a';
+            for (const ex of [648, 872]) {
+                c.beginPath();
+                c.ellipse(ex, 430, 40, 48, 0, 0, TAU);
+                c.fill();
+                c.fillStyle = '#ffffff';
+                c.beginPath();
+                c.arc(ex - 11, 412, 10, 0, TAU);
+                c.fill();
+                c.fillStyle = '#202b3a';
+            }
+
+            // 鼻子
+            c.fillStyle = '#ef93a2';
+            c.beginPath();
+            c.moveTo(760, 515);
+            c.quadraticCurveTo(796, 528, 787, 552);
+            c.quadraticCurveTo(760, 570, 733, 552);
+            c.quadraticCurveTo(724, 528, 760, 515);
+            c.fill();
+
+            // 嘴
+            c.strokeStyle = '#6e514f';
+            c.lineWidth = 12;
+            c.lineCap = 'round';
+            c.beginPath();
+            c.moveTo(760, 570);
+            c.quadraticCurveTo(700, 622, 652, 588);
+            c.moveTo(760, 570);
+            c.quadraticCurveTo(820, 622, 868, 588);
+            c.stroke();
+
+            // 腮红
+            c.fillStyle = 'rgba(255,168,180,0.5)';
+            for (const [cx2, cy2] of [[578, 522], [942, 522]]) {
+                c.beginPath();
+                c.arc(cx2, cy2, 34, 0, TAU);
+                c.fill();
+            }
+        }
+
+        function paintSunset(c, W, H) {
+            const horizon = H * 0.56;
+
+            const sky = c.createLinearGradient(0, 0, 0, horizon);
+            sky.addColorStop(0, '#ffd98a');
+            sky.addColorStop(0.55, '#ff9f6c');
+            sky.addColorStop(1, '#d94f70');
+            c.fillStyle = sky;
+            c.fillRect(0, 0, W, horizon + 2);
+
+            // 太阳与光晕
+            const sunGlow = c.createRadialGradient(820, horizon - 40, 20, 820, horizon - 40, 260);
+            sunGlow.addColorStop(0, 'rgba(255,244,190,0.95)');
+            sunGlow.addColorStop(0.4, 'rgba(255,226,150,0.55)');
+            sunGlow.addColorStop(1, 'rgba(255,226,150,0)');
+            c.fillStyle = sunGlow;
+            c.fillRect(500, horizon - 320, 640, 380);
+            c.fillStyle = '#fff3bd';
+            c.beginPath();
+            c.arc(820, horizon - 40, 86, 0, TAU);
+            c.fill();
+
+            // 云
+            c.fillStyle = 'rgba(255,235,205,0.55)';
+            for (const [x, y, s] of [[180, 180, 1], [1050, 260, 0.9], [350, 330, 0.65], [1230, 130, 0.75]]) {
+                c.beginPath();
+                c.arc(x, y, 46 * s, 0, TAU);
+                c.arc(x + 55 * s, y - 15 * s, 34 * s, 0, TAU);
+                c.arc(x + 105 * s, y, 42 * s, 0, TAU);
+                c.arc(x + 48 * s, y + 20 * s, 40 * s, 0, TAU);
+                c.fill();
+            }
+
+            // 远山 / 中山 / 近山
+            function mountain(color, pts) {
+                c.fillStyle = color;
+                c.beginPath();
+                c.moveTo(-40, horizon);
+                for (let i = 0; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]);
+                c.lineTo(W + 40, horizon);
+                c.closePath();
+                c.fill();
+            }
+            mountain('#9c5f86', [180, horizon - 230, 400, 620, 700, horizon - 380, 950, 660, 1230, horizon - 300, 1430, 700]);
+            mountain('#74437a', [0, horizon, 330, horizon - 300, 560, horizon - 80, 850, horizon - 430, 1160, horizon - 140, 1450, horizon - 250]);
+            mountain('#40205c', [0, horizon, 250, horizon - 190, 500, horizon - 20, 1010, horizon - 260, 1330, horizon - 60, 1600, horizon - 180]);
+
+            // 湖面
+            const lake = c.createLinearGradient(0, horizon, 0, H);
+            lake.addColorStop(0, '#8b4d78');
+            lake.addColorStop(0.5, '#523c70');
+            lake.addColorStop(1, '#241f4a');
+            c.fillStyle = lake;
+            c.fillRect(0, horizon, W, H - horizon);
+
+            // 湖面高光波纹
+            c.strokeStyle = 'rgba(255,220,170,0.28)';
+            c.lineWidth = 7;
+            for (let i = 0; i < 8; i++) {
+                const y = horizon + 30 + i * 26;
+                const w2 = 200 + (i % 3) * 130;
+                c.beginPath();
+                c.moveTo(820 - w2 / 2, y);
+                c.quadraticCurveTo(820, y + (i % 2 ? 10 : -10), 820 + w2 / 2, y);
+                c.stroke();
+            }
+        }
+
+        function makeDemoCanvas(index) {
+            const cv = document.createElement('canvas');
+            cv.width = 1600;
+            cv.height = 900;
+            const ctx = cv.getContext('2d');
+            if (index % 2 === 0) paintCat(ctx, 1600, 900);
+            else paintSunset(ctx, 1600, 900);
+            return cv;
+        }
+
+
+        /* ============================================================
+         *  Vue 3 应用：负责界面、上传、参数控制
+         * ============================================================ */
+        function startApp() {
+            const { createApp, ref, reactive, onMounted, onBeforeUnmount } = Vue;
+
+            createApp({
+                setup() {
+                    const canvasEl = ref(null);
+                    const fileEl = ref(null);
+                    const showPanel = ref(true);
+                    const dotCount = ref(0);
+                    const stageBg = ref('#0c101b');
+                    const demoIndex = ref(0);
+
+                    const opts = reactive({
+                        cols: 140,
+                        dotSize: 0.72,
+                        captureR: 190,
+                        ringR: 105,
+                        bg: 'dark',
+                        guides: true
+                    });
+
+                    let fx = null;
+
+                    onMounted(() => {
+                        fx = new DotRingEffect(canvasEl.value, opts, {
+                            onStats: (n) => { dotCount.value = n; },
+                            onBg: (color) => { stageBg.value = color; }
+                        });
+                        fx.setImage(makeDemoCanvas(0));
+                    });
+
+                    onBeforeUnmount(() => {
+                        if (fx) fx.dispose();
+                    });
+
+                    function onFileChange(e) {
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        loadFile(file);
+                        if (fileEl.value) fileEl.value.value = '';
+                    }
+
+                    function loadFile(file) {
+                        const url = URL.createObjectURL(file);
+                        const img = new Image();
+                        img.onload = () => {
+                            fx.setImage(img);
+                            URL.revokeObjectURL(url);
+                        };
+                        img.onerror = () => URL.revokeObjectURL(url);
+                        img.src = url;
+                    }
+
+                    function onDrop(e) {
+                        const file = e.dataTransfer && e.dataTransfer.files &&
+                            e.dataTransfer.files[0];
+                        if (file && file.type && file.type.indexOf('image/') === 0) {
+                            loadFile(file);
+                        }
+                    }
+
+                    function cycleDemo() {
+                        demoIndex.value++;
+                        fx.setImage(makeDemoCanvas(demoIndex.value));
+                    }
+
+                    return {
+                        canvasEl, fileEl, showPanel, dotCount, stageBg, opts,
+                        onFileChange, onDrop, cycleDemo
+                    };
+                }
+            }).mount('#app');
+        }
+
+        window.__vueReady(startApp);
+    </script>
+</body>
+</html>

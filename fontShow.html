@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS 文字特效实验室</title>
+    <style>
+        /* =========================================
+           基础布局 (让页面好看一点，非特效核心)
+           ========================================= */
+        body {
+            margin: 0;
+            padding: 40px;
+            background-color: #1a1a1a; /* 深色背景更能衬托特效 */
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px; /* 每一行的间距 */
+        }
+
+        h2 {
+            font-size: 1rem;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .effect-box {
+            background: #2a2a2a;
+            padding: 30px 50px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        /* =========================================
+           1. 荧光笔高亮特效 (Highlighter)
+           原理：使用 linear-gradient (线性渐变) 作为背景图
+           ========================================= */
+        .highlight-text {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ececec;
+            display: inline-block; /* 必须是行内块或行内元素 */
+            
+            /* 🎨 核心代码 */
+            /* 1. 定义背景：从透明(50%)到绿色(50%) */
+            /* 你可以改颜色：rgba(66, 184, 131, 0.6) 是半透明绿色 */
+            background: linear-gradient(
+                to bottom, 
+                transparent 60%, 
+                rgba(66, 184, 131, 0.8) 60%
+            );
+            
+            /* 2. 让背景只在文字范围内显示 (可选，如果不加就是整行高亮) */
+            line-height: 1.2;
+        }
+
+        /* 进阶：鼠标放上去才划线 */
+        .highlight-anim {
+            font-size: 2rem;
+            font-weight: bold;
+            display: inline;
+            background: linear-gradient(to bottom, transparent 60%, #e74c3c 60%);
+            
+            /* 动画核心：先把背景宽度设为 0 */
+            background-size: 0% 100%;
+            background-repeat: no-repeat;
+            
+            /* 过渡效果：0.5秒画出来 */
+            transition: background-size 0.5s ease;
+        }
+        
+        .highlight-anim:hover {
+            /* 鼠标悬停时，背景宽度变 100% */
+            background-size: 100% 100%;
+        }
+
+
+        /* =========================================
+           2. 渐变文字 (Gradient Text)
+           原理：把背景设为渐变色，然后把文字设为透明，
+           最后裁切背景只显示在文字轮廓里。
+           ========================================= */
+        .gradient-text {
+            font-size: 3rem;
+            font-weight: 900;
+            
+            /* 1. 设置渐变背景 */
+            background-image: linear-gradient(45deg, #f3ec78, #af4261);
+            
+            /* 2. 核心：背景裁剪为文字形状 */
+            -webkit-background-clip: text;
+            background-clip: text; 
+            
+            /* 3. 把文字本身变成透明，透出背景 */
+            color: transparent;
+        }
+
+
+        /* =========================================
+           3. 霓虹发光 (Neon Glow)
+           原理：利用 text-shadow 多层叠加
+           ========================================= */
+        .neon-text {
+            font-size: 3rem;
+            color: #fff;
+            /* 第一层：小范围模糊 (清晰轮廓)
+               第二层：中范围模糊 (发光感)
+               第三层：大范围模糊 (氛围感)
+               第四层：超大范围 (颜色扩散)
+            */
+            text-shadow: 
+                0 0 5px #fff,
+                0 0 10px #fff,
+                0 0 20px #0073e6,
+                0 0 40px #0073e6,
+                0 0 80px #0073e6;
+        }
+
+
+        /* =========================================
+           4. 打字机效果 (Typewriter)
+           原理：改变容器宽度 + 隐藏溢出 + 等宽字体
+           ========================================= */
+        .typewriter {
+            font-family: monospace; /* 必须用等宽字体 */
+            font-size: 1.5rem;
+            color: #0f0; /* 黑客绿 */
+            
+            overflow: hidden; /* 隐藏超出的字 */
+            border-right: .15em solid orange; /* 那个闪烁的光标 */
+            white-space: nowrap; /* 强制不换行 */
+            margin: 0 auto;
+            letter-spacing: .15em;
+            
+            /* 动画：width 从 0 到 100% */
+            /* steps(30) 是关键，让它一格一格跳，而不是平滑变大 */
+            width: 0;
+            animation: 
+                typing 3.5s steps(30, end) forwards,
+                blink-caret .75s step-end infinite;
+        }
+
+        /* 定义打字动画 */
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        /* 定义光标闪烁动画 */
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: orange; }
+        }
+
+
+        /* =========================================
+           5. 底部下划线展开 (Animated Underline)
+           原理：使用 ::after 伪元素画一条线
+           ========================================= */
+        .hover-underline {
+            font-size: 1.5rem;
+            color: white;
+            text-decoration: none;
+            position: relative; /* 父元素相对定位 */
+            cursor: pointer;
+        }
+
+        .hover-underline::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 3px;     /* 线条粗细 */
+            bottom: -5px;    /* 距离文字底部 */
+            left: 0;
+            background-color: #42b883; /* Vue绿 */
+            
+            /* 核心：初始状态 */
+            transform: scaleX(0);       /* 宽度缩放为0 */
+            transform-origin: bottom right; /* 从右边消失 */
+            transition: transform 0.3s ease-out;
+        }
+
+        .hover-underline:hover::after {
+            transform: scaleX(1);       /* 宽度变回 100% */
+            transform-origin: bottom left;  /* 从左边开始长出来 */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="effect-box">
+        <h2>效果 1：荧光笔高亮 (Highlighter)</h2>
+        <span class="highlight-text">重点内容画下来</span>
+        <br><br>
+        <span class="highlight-anim">鼠标放上来试试看</span>
+    </div>
+
+    <div class="effect-box">
+        <h2>效果 2：渐变文字 (Gradient)</h2>
+        <span class="gradient-text">Beautiful World</span>
+    </div>
+
+    <div class="effect-box">
+        <h2>效果 3：赛博朋克霓虹 (Neon)</h2>
+        <span class="neon-text">CYBERPUNK</span>
+    </div>
+
+    <div class="effect-box">
+        <h2>效果 4：打字机动画 (Typewriter)</h2>
+        <div style="display:inline-block"> <div class="typewriter">Hello World, I am coding...</div>
+        </div>
+    </div>
+
+    <div class="effect-box">
+        <h2>效果 5：动态下划线 (Hover Line)</h2>
+        <span class="hover-underline">Hover Me Please</span>
+    </div>
+
+</body>
+</html>
