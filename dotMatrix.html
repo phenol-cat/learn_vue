@@ -597,16 +597,13 @@
 
             /* ---------- 按颜色连续排序并分配环上角度 ---------- */
             _sortAndAssignRing(captured) {
-                // 1) 按 Morton 索引升序：得到一条从深到浅、颜色连续过渡的色带
+                // 按 Morton 索引升序：得到一条颜色连续过渡的色带，
+                // 然后顺序铺满整个圆环（接缝处会有一次由最深色回到最浅色的跳变）
                 captured.sort((A, B) => A.key - B.key);
-                // 2) 把色带“对折”铺到闭环圆环上：前一半顺排、后一半倒排。
-                //    这样色带两端在圆环接缝处相接、折返处也相邻，整圈都不会跳色。
                 const n = captured.length;
-                const half = (n + 1) >> 1;
                 const stepA = TAU / n;
                 for (let i = 0; i < n; i++) {
-                    const idx = i < half ? i * 2 : (n - i) * 2 - 1;
-                    captured[idx].ringTargetA = stepA * (i + 0.5);
+                    captured[i].ringTargetA = stepA * (i + 0.5);
                 }
             }
 
